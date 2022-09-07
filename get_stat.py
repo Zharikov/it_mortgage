@@ -71,6 +71,12 @@ for date in dates:
                                         old[4] + float(new[6]), 
                                         old[5] + int(new[7]),
                                         old[6] + float(new[8])]
+for listCreditors in creditorsResults.values():
+    if(listCreditors[5]!=0):
+        listCreditors.append(listCreditors[6]/listCreditors[5])
+for listRegions in regionsResults.values():
+    if(listRegions[5]!=0):
+        listRegions.append(listRegions[6]/listRegions[5])
 print(creditorsResults)
 print()
 print(regionsResults)
@@ -85,6 +91,7 @@ print(tabulate([mainResults], headers=headers)) # выводим таблицу
 
 # выводим таблицу по банкам
 headers.insert(0, "Банк")
+headers.append("Средний\rразмер\rкредита,\rмлн.руб.")
 final = []
 for key, value in creditorsResults.items():
     value.insert(0, key)
