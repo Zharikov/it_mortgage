@@ -18,6 +18,7 @@ regions = json_obj['regions']
 mainResults=[0, 0, 0, 0, 0, 0, 0]
 estates=[]
 amountOfLoans=[]
+midOfLoans=[]
 
 creditorsResults = {}
 for creditor in creditors:
@@ -27,56 +28,70 @@ regionsResults ={}
 for region in regions:
     regionsResults[region] =  [0, 0, 0, 0, 0, 0, 0]
 
+err=[]
 for date in dates:
     resp_text = urllib.request.urlopen('https://xn--d1aqf.xn--p1ai/ajax/itm_weekly_report.php?reportType=creditor&date=' + date).read().decode('UTF-8')
     json_obj_creditors = json.loads(resp_text)
     resp_text = urllib.request.urlopen('https://xn--d1aqf.xn--p1ai/ajax/itm_weekly_report.php?reportType=region&date=' + date).read().decode('UTF-8')
     json_obj_regions = json.loads(resp_text)
     # собираем общие данные для итоговых значений
-    tmp = [x.replace(" ", "").replace(",",".") for x in json_obj_creditors['data'][0]] 
-    mainResults=[ mainResults[0] + int(tmp[2]),
-                  mainResults[1] + int(tmp[3]),
-                  mainResults[2] + int(tmp[4]),
-                  mainResults[3] + int(tmp[5]),
-                  mainResults[4] + float(tmp[6]), 
-                  mainResults[5] + int(tmp[7]),
-                  mainResults[6] + float(tmp[8])]
-    # считаем количество выданных ипотек за неделю 
-    estates.append(int(tmp[7]))
-    # считаем сумму выданных ипотек за неделю 
-    amountOfLoans.append(float(tmp[8]))
+    #print(json_obj_regions)
+    #print('https://xn--d1aqf.xn--p1ai/ajax/itm_weekly_report.php?reportType=region&date=' + date)
+    if(len(json_obj_creditors['data'])!=0):
+        tmp = [x.replace(" ", "").replace(",",".") for x in json_obj_creditors['data'][0]]
+       
+        mainResults=[ mainResults[0] + int(tmp[2]),
+                      mainResults[1] + int(tmp[3]),
+                      mainResults[2] + int(tmp[4]),
+                      mainResults[3] + int(tmp[5]),
+                      mainResults[4] + float(tmp[6]), 
+                      mainResults[5] + int(tmp[7]),
+                      mainResults[6] + float(tmp[8])]
+        # считаем количество выданных ипотек за неделю
+        estates.append(int(tmp[7]))
+        # считаем сумму выданных ипотек за неделю 
+        amountOfLoans.append(float(tmp[8]))
+        midOfLoans.append(0.0 if float(tmp[7])==0 else float(tmp[8])/float(tmp[7]))
+        # собираем данные по банкам 
+        for dat in json_obj_creditors['data']:
+            if dat[0]!='Итого' and dat[1] == '':
+                old = creditorsResults[dat[0]]
+                new = [x.replace(" ", "").replace(",",".") for x in dat]
+                creditorsResults[dat[0]] = [old[0] + int(new[2]),
+                                            old[1] + int(new[3]),
+                                            old[2] + int(new[4]),
+                                            old[3] + int(new[5]),
+                                            old[4] + float(new[6]), 
+                                            old[5] + int(new[7]),
+                                            old[6] + float(new[8])]
+        
+        # собираем данные по регионам 
+        for dat in json_obj_regions['data']:
+            if dat[0]!='Итого' and dat[1] == '':
+                old = regionsResults[dat[0]]
+                new = [x.replace(" ", "").replace(",",".") for x in dat]
+                regionsResults[dat[0]] = [old[0] + int(new[2]),
+                                            old[1] + int(new[3]),
+                                            old[2] + int(new[4]),
+                                            old[3] + int(new[5]),
+                                            old[4] + float(new[6]), 
+                                            old[5] + int(new[7]),
+                                            old[6] + float(new[8])]
+    else:
+        err.append(date)
+        
+for e in err:
+    dates.remove(e)
     
-    # собираем данные по банкам 
-    for dat in json_obj_creditors['data']:
-        if dat[0]!='Итого' and dat[1] == '':
-            old = creditorsResults[dat[0]]
-            new = [x.replace(" ", "").replace(",",".") for x in dat]
-            creditorsResults[dat[0]] = [old[0] + int(new[2]),
-                                        old[1] + int(new[3]),
-                                        old[2] + int(new[4]),
-                                        old[3] + int(new[5]),
-                                        old[4] + float(new[6]), 
-                                        old[5] + int(new[7]),
-                                        old[6] + float(new[8])]
-    
-    # собираем данные по регионам 
-    for dat in json_obj_regions['data']:
-        if dat[0]!='Итого' and dat[1] == '':
-            old = regionsResults[dat[0]]
-            new = [x.replace(" ", "").replace(",",".") for x in dat]
-            regionsResults[dat[0]] = [old[0] + int(new[2]),
-                                        old[1] + int(new[3]),
-                                        old[2] + int(new[4]),
-                                        old[3] + int(new[5]),
-                                        old[4] + float(new[6]), 
-                                        old[5] + int(new[7]),
-                                        old[6] + float(new[8])]
 for listCreditors in creditorsResults.values():
     if(listCreditors[5]!=0):
         listCreditors.append(listCreditors[6]/listCreditors[5])
 for listRegions in regionsResults.values():
     if(listRegions[5]!=0):
         listRegions.append(listRegions[6]/listRegions[5])
+    
+print(dates)
+print(estates)
 print(creditorsResults)
 print()
 print(regionsResults)
@@ -111,6 +126,8 @@ print(tabulate(sorted(regionsResults.values(), key = lambda x: float(x[7]),
 
 
 plt.figure(figsize=(10,10), dpi=120)
+print(len(dates))
+print(len(estates))
 plt.bar(dates, estates)
 #plt.title('Количество выданных кредитов по неделям')
 plt.xlabel('Неделя', fontsize=10)
@@ -126,17 +143,15 @@ plt.ylabel('Сумма, млн.руб.', fontsize=10)
 plt.xticks(rotation=45)
 plt.show()
 
-displayDict = {}
-for k, v in creditorsResults.items(): 
-    displayDict[k]=v[6]
-displayDict = dict(sorted(displayDict.items(), key=lambda item: item[1], reverse=True))
-plt.figure(figsize=(22,10), dpi=120)
-plt.bar(displayDict.keys(), displayDict.values())
-#plt.title('Сумма выданных кредитов по банкам')
-plt.xlabel('Банк', fontsize=10)
-plt.ylabel('Сумма, млн.руб.', fontsize=10)
-plt.xticks(rotation=90, fontsize=10)
+
+plt.figure(figsize=(10,10), dpi=120)
+plt.bar(dates, midOfLoans)
+#plt.title('Средний размер кредита по неделям')
+plt.xlabel('Неделя', fontsize=10)
+plt.ylabel('Cредний размер кредита, млн.руб.', fontsize=10)
+plt.xticks(rotation=45)
 plt.show()
+
 
 displayDict = {}
 for k, v in creditorsResults.items(): 
@@ -150,15 +165,14 @@ plt.ylabel('Количество, шт.', fontsize=10)
 plt.xticks(rotation=90, fontsize=10)
 plt.show()
 
-
 displayDict = {}
-for k, v in regionsResults.items(): 
+for k, v in creditorsResults.items(): 
     displayDict[k]=v[6]
 displayDict = dict(sorted(displayDict.items(), key=lambda item: item[1], reverse=True))
 plt.figure(figsize=(22,10), dpi=120)
 plt.bar(displayDict.keys(), displayDict.values())
-#plt.title('Сумма выданных кредитов по регионам')
-plt.xlabel('Регион', fontsize=10)
+#plt.title('Сумма выданных кредитов по банкам')
+plt.xlabel('Банк', fontsize=10)
 plt.ylabel('Сумма, млн.руб.', fontsize=10)
 plt.xticks(rotation=90, fontsize=10)
 plt.show()
@@ -172,5 +186,17 @@ plt.bar(displayDict.keys(), displayDict.values())
 #plt.title('Количество выданных кредитов по регионам')
 plt.xlabel('Регион', fontsize=10)
 plt.ylabel('Количество, шт.', fontsize=10)
+plt.xticks(rotation=90, fontsize=10)
+plt.show()
+
+displayDict = {}
+for k, v in regionsResults.items(): 
+    displayDict[k]=v[6]
+displayDict = dict(sorted(displayDict.items(), key=lambda item: item[1], reverse=True))
+plt.figure(figsize=(22,10), dpi=120)
+plt.bar(displayDict.keys(), displayDict.values())
+#plt.title('Сумма выданных кредитов по регионам')
+plt.xlabel('Регион', fontsize=10)
+plt.ylabel('Сумма, млн.руб.', fontsize=10)
 plt.xticks(rotation=90, fontsize=10)
 plt.show()
