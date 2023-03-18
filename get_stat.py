@@ -54,7 +54,7 @@ for date in dates:
         midOfLoans.append(0.0 if float(tmp[7])==0 else float(tmp[8])/float(tmp[7]))
         # собираем данные по банкам 
         for dat in json_obj_creditors['data']:
-            if dat[0]!='Итого' and dat[1] == '':
+            if dat[0]!='Все кредиторы' and dat[1] == '':
                 old = creditorsResults[dat[0]]
                 new = [x.replace(" ", "").replace(",",".") for x in dat]
                 creditorsResults[dat[0]] = [old[0] + int(new[2]),
@@ -67,7 +67,7 @@ for date in dates:
         
         # собираем данные по регионам 
         for dat in json_obj_regions['data']:
-            if dat[0]!='Итого' and dat[1] == '':
+            if dat[0]!='Российская Федерация' and dat[1] == '':
                 old = regionsResults[dat[0]]
                 new = [x.replace(" ", "").replace(",",".") for x in dat]
                 regionsResults[dat[0]] = [old[0] + int(new[2]),
@@ -125,7 +125,15 @@ print(tabulate(sorted(regionsResults.values(), key = lambda x: float(x[7]),
                       reverse=True), headers=headers)) 
 
 
-plt.figure(figsize=(10,10), dpi=120)
+plt.figure(figsize=(17,10), dpi=120)
+plt.bar(dates, midOfLoans)
+#plt.title('Средний размер кредита по неделям')
+plt.xlabel('Неделя', fontsize=10)
+plt.ylabel('Cредний размер кредита, млн.руб.', fontsize=10)
+plt.xticks(rotation=45)
+plt.show()
+
+plt.figure(figsize=(17,10), dpi=120)
 print(len(dates))
 print(len(estates))
 plt.bar(dates, estates)
@@ -135,20 +143,11 @@ plt.ylabel('Количество выданных кредитов, шт.', font
 plt.xticks(rotation=45)
 plt.show()
 
-plt.figure(figsize=(10,10), dpi=120)
+plt.figure(figsize=(17,10), dpi=120)
 plt.bar(dates, amountOfLoans)
 #plt.title('Сумма выданных кредитов по неделям')
 plt.xlabel('Неделя', fontsize=10)
 plt.ylabel('Сумма, млн.руб.', fontsize=10)
-plt.xticks(rotation=45)
-plt.show()
-
-
-plt.figure(figsize=(10,10), dpi=120)
-plt.bar(dates, midOfLoans)
-#plt.title('Средний размер кредита по неделям')
-plt.xlabel('Неделя', fontsize=10)
-plt.ylabel('Cредний размер кредита, млн.руб.', fontsize=10)
 plt.xticks(rotation=45)
 plt.show()
 
